@@ -1,69 +1,62 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login</title>
 
-    <title>Admin Login</title>
+<style>
+body {
+    margin: 0;
+    background: #080808;
+    color: white;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
 
-    <style>
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #090909;
-            color: white;
-            font-family: Arial, sans-serif;
-        }
+.box {
+    width: 320px;
+    padding: 30px;
+    background: #111;
+    border-radius: 18px;
+    text-align: center;
+}
 
-        .box {
-            width: 350px;
-            padding: 30px;
-            background: #151515;
-            border-radius: 18px;
-        }
+input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 13px;
+    margin: 15px 0;
+    border: 0;
+    border-radius: 10px;
+    background: #222;
+    color: white;
+}
 
-        h1 {
-            text-align: center;
-        }
+button {
+    width: 100%;
+    padding: 13px;
+    border: 0;
+    border-radius: 10px;
+    background: #00c853;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
 
-        input {
-            width: 100%;
-            padding: 14px;
-            margin-top: 15px;
-            box-sizing: border-box;
-            border-radius: 10px;
-            border: 1px solid #333;
-            background: #0d0d0d;
-            color: white;
-        }
-
-        button {
-            width: 100%;
-            padding: 14px;
-            margin-top: 15px;
-            border: 0;
-            border-radius: 10px;
-            background: #ff7900;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        #result {
-            text-align: center;
-            margin-top: 15px;
-        }
-    </style>
+#message {
+    margin-top: 15px;
+}
+</style>
 </head>
 
 <body>
 
 <div class="box">
-
-    <h1>Admin Login</h1>
+    <h2>Admin Login</h2>
 
     <input
         id="password"
@@ -71,23 +64,21 @@
         placeholder="Admin Password"
     >
 
-    <button onclick="login()">
-        Login
-    </button>
+    <button onclick="login()">LOGIN</button>
 
-    <div id="result"></div>
-
+    <div id="message"></div>
 </div>
 
 <script>
-
 async function login() {
 
-    const password =
-        document.getElementById("password").value;
+    const password = document.getElementById("password").value;
+    const message = document.getElementById("message");
 
-    const result =
-        document.getElementById("result");
+    if (!password) {
+        message.textContent = "กรุณาใส่รหัสผ่าน";
+        return;
+    }
 
     try {
 
@@ -95,11 +86,9 @@ async function login() {
             "https://truemoney-system-production.up.railway.app/api/admin/login",
             {
                 method: "POST",
-
                 headers: {
                     "Content-Type": "application/json"
                 },
-
                 body: JSON.stringify({
                     password: password
                 })
@@ -108,32 +97,27 @@ async function login() {
 
         const data = await response.json();
 
-        if (!data.success) {
+        if (data.success) {
 
-            result.textContent = data.message;
-            result.style.color = "red";
+            localStorage.setItem(
+                "adminToken",
+                data.token
+            );
 
-            return;
+            window.location.href = "admin.html";
+
+        } else {
+
+            message.textContent =
+                data.message || "เข้าสู่ระบบไม่สำเร็จ";
         }
-
-        localStorage.setItem(
-            "adminToken",
-            data.token
-        );
-
-        window.location.href = "admin.html";
 
     } catch (error) {
 
-        result.textContent =
-            "เชื่อมต่อ Backend ไม่สำเร็จ";
-
-        result.style.color = "red";
-
+        message.textContent =
+            "ไม่สามารถเชื่อมต่อ Server ได้";
     }
-
 }
-
 </script>
 
 </body>
