@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>TrueMoney System</title>
 
     <style>
@@ -17,131 +18,145 @@
             justify-content: center;
             align-items: center;
             background: #090909;
-            color: white;
             font-family: Arial, sans-serif;
+            color: white;
         }
 
-        .container {
+        .box {
             width: 420px;
-            padding: 35px;
-            background: #141414;
-            border: 1px solid #292929;
-            border-radius: 22px;
+            padding: 30px;
+            background: #151515;
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(255, 120, 0, 0.15);
         }
 
         h1 {
+            margin-top: 0;
             text-align: center;
-            margin: 0;
         }
 
-        .subtitle {
+        p {
             text-align: center;
-            color: #999;
-            margin: 10px 0 25px;
+            color: #aaa;
         }
 
         input {
             width: 100%;
-            padding: 15px;
+            padding: 14px;
+            border: 1px solid #333;
+            border-radius: 10px;
+            outline: none;
             background: #0d0d0d;
             color: white;
-            border: 1px solid #333;
-            border-radius: 12px;
-            outline: none;
+            margin-top: 15px;
         }
 
         button {
             width: 100%;
-            padding: 15px;
-            margin-top: 12px;
+            padding: 14px;
+            margin-top: 15px;
             border: 0;
-            border-radius: 12px;
-            cursor: pointer;
+            border-radius: 10px;
+            background: #ff7900;
+            color: white;
+            font-size: 16px;
             font-weight: bold;
+            cursor: pointer;
         }
 
-        #status {
-            display: none;
+        button:hover {
+            opacity: 0.9;
+        }
+
+        #result {
             margin-top: 15px;
-            padding: 12px;
-            border-radius: 10px;
-            background: #202020;
             text-align: center;
+            color: #00ff88;
+            word-break: break-word;
         }
     </style>
 </head>
 
 <body>
 
-    <div class="container">
+<div class="box">
 
-        <h1>TrueMoney</h1>
+    <h1>TrueMoney</h1>
 
-        <div class="subtitle">
-            ระบบรับเงิน
-        </div>
+    <p>กรอกลิงก์ซองของคุณ</p>
 
-        <input
-            id="voucher"
-            type="text"
-            placeholder="ใส่ลิงก์ซอง TrueMoney"
-        >
+    <input
+        id="voucher"
+        type="text"
+        placeholder="https://gift.truemoney.com/..."
+    >
 
-        <button onclick="receiveVoucher()">
-            รับซอง
-        </button>
+    <button onclick="receiveVoucher()">
+        รับเงิน
+    </button>
 
-        <div id="status"></div>
+    <div id="result"></div>
 
-    </div>
+</div>
 
-    <script>
+<script>
 
-        async function receiveVoucher() {
+async function receiveVoucher() {
 
-            const input = document.getElementById("voucher");
-            const status = document.getElementById("status");
+    const voucher = document.getElementById("voucher").value.trim();
+    const result = document.getElementById("result");
 
-            const voucher = input.value.trim();
+    if (!voucher) {
+        result.style.color = "#ff4444";
+        result.textContent = "กรุณาใส่ลิงก์ซองก่อน";
+        return;
+    }
 
-            status.style.display = "block";
+    result.style.color = "#ffaa00";
+    result.textContent = "กำลังส่งข้อมูล...";
 
-            if (!voucher) {
-                status.textContent = "กรุณาใส่ลิงก์ซองก่อน";
-                return;
+    try {
+
+        const response = await fetch(
+            "https://truemoney-system-production.up.railway.app/api/voucher",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    voucher: voucher
+                })
             }
+        );
 
-            try {
+        const data = await response.json();
 
-                status.textContent = "กำลังส่งข้อมูล...";
+        if (data.success) {
 
-                const response = await fetch(
-                    "https://truemoney-system-production.up.railway.app/api/voucher",
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            voucher: voucher
-                        })
-                    }
-                );
+            result.style.color = "#00ff88";
+            result.textContent = data.message;
 
-                const data = await response.json();
+        } else {
 
-                status.textContent = data.message;
+            result.style.color = "#ff4444";
+            result.textContent = data.message || "เกิดข้อผิดพลาด";
 
-            } catch (error) {
-
-                status.textContent =
-                    "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้";
-
-                console.error(error);
-            }
         }
 
-    </script>
+    } catch (error) {
+
+        console.error(error);
+
+        result.style.color = "#ff4444";
+        result.textContent = "เชื่อมต่อ Backend ไม่สำเร็จ";
+
+    }
+}
+
+</script>
 
 </body>
 </html>
