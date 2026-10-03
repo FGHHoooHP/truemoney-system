@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Admin Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #090909;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 40px;
+        }
+
+        h1 {
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: #151515;
+            border: 1px solid #292929;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .count {
+            font-size: 30px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 14px;
+            border-bottom: 1px solid #292929;
+            text-align: left;
+        }
+
+        th {
+            color: #aaa;
+        }
+
+        .status {
+            color: #ffaa00;
+        }
+
+        .voucher {
+            word-break: break-all;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: 0;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #ff7900;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Admin Dashboard</h1>
+
+    <div class="card">
+        <div>Total Vouchers</div>
+        <div class="count" id="count">0</div>
+    </div>
+
+    <div class="card">
+
+        <button onclick="loadVouchers()">
+            Refresh
+        </button>
+
+        <br><br>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Voucher</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+
+            <tbody id="voucherList">
+            </tbody>
+        </table>
+
+    </div>
+
+<script>
+
+async function loadVouchers() {
+
+    try {
+
+        const response = await fetch(
+            "https://truemoney-system-production.up.railway.app/api/admin/vouchers"
+        );
+
+        const data = await response.json();
+
+        if (!data.success) {
+            return;
+        }
+
+        document.getElementById("count").textContent =
+            data.count;
+
+        const list =
+            document.getElementById("voucherList");
+
+        list.innerHTML = "";
+
+        data.vouchers.forEach(item => {
+
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${item.id}</td>
+
+                <td class="voucher">
+                    ${escapeHtml(item.voucher)}
+                </td>
+
+                <td class="status">
+                    ${escapeHtml(item.status)}
+                </td>
+
+                <td>
+                    ${new Date(item.created_at).toLocaleString()}
+                </td>
+            `;
+
+            list.appendChild(row);
+
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById("voucherList").innerHTML = `
+            <tr>
+                <td colspan="4">
+                    Cannot connect to backend
+                </td>
+            </tr>
+        `;
+
+    }
+}
+
+function escapeHtml(text) {
+
+    const div = document.createElement("div");
+
+    div.textContent = text;
+
+    return div.innerHTML;
+}
+
+loadVouchers();
+
+</script>
+
+</body>
+</html>
