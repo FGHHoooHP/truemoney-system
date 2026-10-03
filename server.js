@@ -16,6 +16,8 @@ app.use((req, res, next) => {
     next();
 });
 
+const vouchers = [];
+
 app.get("/", (req, res) => {
     res.json({
         status: "online",
@@ -40,12 +42,29 @@ app.post("/api/voucher", (req, res) => {
         });
     }
 
+    const item = {
+        id: vouchers.length + 1,
+        voucher: voucher,
+        status: "pending",
+        createdAt: new Date().toISOString()
+    };
+
+    vouchers.push(item);
+
     console.log("Received voucher:", voucher);
 
     res.json({
         success: true,
         message: "ได้รับลิงก์ซองแล้ว",
-        voucher: voucher
+        id: item.id
+    });
+});
+
+app.get("/api/admin/vouchers", (req, res) => {
+    res.json({
+        success: true,
+        count: vouchers.length,
+        vouchers: vouchers
     });
 });
 
