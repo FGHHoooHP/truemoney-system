@@ -2,8 +2,13 @@
 <html lang="th">
 
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
 <title>Admin Panel</title>
 
@@ -58,6 +63,43 @@ button {
     background: #d32f2f;
 }
 
+.stats {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.card {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 14px;
+    padding: 18px 25px;
+    min-width: 150px;
+}
+
+.card .label {
+    color: #888;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.card .number {
+    font-size: 25px;
+    font-weight: bold;
+}
+
+#search {
+    width: 100%;
+    padding: 13px;
+    margin-bottom: 15px;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 10px;
+    color: white;
+    outline: none;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -103,7 +145,25 @@ th {
     padding: 25px;
 }
 
+@media (max-width: 800px) {
+
+    body {
+        padding: 15px;
+    }
+
+    table {
+        font-size: 12px;
+    }
+
+    th,
+    td {
+        padding: 8px;
+    }
+
+}
+
 </style>
+
 </head>
 
 <body>
@@ -113,35 +173,112 @@ th {
     <h1>Admin Panel</h1>
 
     <div>
-        <button class="refresh" onclick="loadVouchers()">
+
+        <button
+            class="refresh"
+            onclick="loadVouchers()"
+        >
             Refresh
         </button>
 
-        <button class="logout" onclick="logout()">
+        <button
+            class="logout"
+            onclick="logout()"
+        >
             Logout
         </button>
+
     </div>
 
 </div>
 
+<div class="stats">
+
+    <div class="card">
+
+        <div class="label">
+            Pending
+        </div>
+
+        <div
+            class="number"
+            id="pendingCount"
+        >
+            0
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <div class="label">
+            Verified
+        </div>
+
+        <div
+            class="number"
+            id="verifiedCount"
+        >
+            0
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <div class="label">
+            Rejected
+        </div>
+
+        <div
+            class="number"
+            id="rejectedCount"
+        >
+            0
+        </div>
+
+    </div>
+
+</div>
+
+<input
+    id="search"
+    type="text"
+    placeholder="ค้นหา Voucher..."
+    oninput="filterVouchers()"
+>
+
 <table>
 
 <thead>
+
 <tr>
+
     <th>ID</th>
+
     <th>Voucher</th>
+
     <th>Status</th>
+
     <th>Date</th>
+
     <th>Action</th>
+
 </tr>
+
 </thead>
 
 <tbody id="list">
 
 <tr>
-    <td colspan="5" class="empty">
+
+    <td
+        colspan="5"
+        class="empty"
+    >
         กำลังโหลด...
     </td>
+
 </tr>
 
 </tbody>
@@ -151,14 +288,20 @@ th {
 <script>
 
 const API =
-"https://truemoney-system-production.up.railway.app";
+    "https://truemoney-system-production.up.railway.app";
 
 const token =
-localStorage.getItem("adminToken");
+    localStorage.getItem("adminToken");
+
+let allVouchers = [];
 
 if (!token) {
-    window.location.href = "admin-login.html";
+
+    window.location.href =
+        "admin-login.html";
 }
+
+/* LOAD */
 
 async function loadVouchers() {
 
@@ -167,18 +310,24 @@ async function loadVouchers() {
 
     try {
 
-        const response = await fetch(
-            `${API}/api/admin/vouchers`,
-            {
-                headers: {
-                    "x-admin-token": token
+        const response =
+            await fetch(
+                `${API}/api/admin/vouchers`,
+                {
+                    headers: {
+                        "x-admin-token":
+                            token
+                    }
                 }
-            }
-        );
+            );
 
-        if (response.status === 401) {
+        if (
+            response.status === 401
+        ) {
 
-            localStorage.removeItem("adminToken");
+            localStorage.removeItem(
+                "adminToken"
+            );
 
             window.location.href =
                 "admin-login.html";
@@ -187,6 +336,7 @@ async function loadVouchers() {
         }
 
         if (!response.ok) {
+
             throw new Error(
                 `HTTP ${response.status}`
             );
@@ -197,48 +347,108 @@ async function loadVouchers() {
 
         if (
             !data.success ||
-            !Array.isArray(data.vouchers)
+            !Array.isArray(
+                data.vouchers
+            )
         ) {
+
             throw new Error(
                 data.message ||
                 "รูปแบบข้อมูลไม่ถูกต้อง"
             );
         }
 
-        list.replaceChildren();
+        allVouchers =
+            data.vouchers;
 
-        if (data.vouchers.length === 0) {
+        updateStats(
+            allVouchers
+        );
 
-            list.innerHTML = `
-                <tr>
-                    <td colspan="5" class="empty">
-                        ยังไม่มีรายการ
-                    </td>
-                </tr>
-            `;
+        renderVouchers(
+            allVouchers
+        );
 
-            return;
-        }
+    } catch (error) {
 
-        data.vouchers.forEach(item => {
+        console.error(
+            "โหลดรายการไม่สำเร็จ:",
+            error
+        );
+
+        list.innerHTML = `
+            <tr>
+                <td
+                    colspan="5"
+                    class="empty"
+                >
+                    โหลดข้อมูลไม่สำเร็จ:
+                    ${error.message}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+/* RENDER */
+
+function renderVouchers(
+    vouchers
+) {
+
+    const list =
+        document.getElementById(
+            "list"
+        );
+
+    list.replaceChildren();
+
+    if (
+        vouchers.length === 0
+    ) {
+
+        list.innerHTML = `
+            <tr>
+                <td
+                    colspan="5"
+                    class="empty"
+                >
+                    ยังไม่มีรายการ
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    vouchers.forEach(
+        item => {
 
             const row =
-                document.createElement("tr");
+                document.createElement(
+                    "tr"
+                );
 
             const id =
-                document.createElement("td");
+                document.createElement(
+                    "td"
+                );
 
             id.textContent =
                 item.id;
 
             const voucher =
-                document.createElement("td");
+                document.createElement(
+                    "td"
+                );
 
             voucher.textContent =
                 item.voucher;
 
             const status =
-                document.createElement("td");
+                document.createElement(
+                    "td"
+                );
 
             status.textContent =
                 item.status;
@@ -247,21 +457,30 @@ async function loadVouchers() {
                 `status ${item.status}`;
 
             const date =
-                document.createElement("td");
+                document.createElement(
+                    "td"
+                );
 
             date.textContent =
                 item.created_at;
 
             const actions =
-                document.createElement("td");
+                document.createElement(
+                    "td"
+                );
 
             actions.className =
                 "actions";
 
-            if (item.status === "pending") {
+            if (
+                item.status ===
+                "pending"
+            ) {
 
                 const verify =
-                    document.createElement("button");
+                    document.createElement(
+                        "button"
+                    );
 
                 verify.textContent =
                     "Verify";
@@ -269,14 +488,16 @@ async function loadVouchers() {
                 verify.className =
                     "verify";
 
-                verify.onclick = () =>
-                    updateStatus(
+                verify.onclick =
+                    () => updateStatus(
                         item.id,
                         "verified"
                     );
 
                 const reject =
-                    document.createElement("button");
+                    document.createElement(
+                        "button"
+                    );
 
                 reject.textContent =
                     "Reject";
@@ -284,14 +505,19 @@ async function loadVouchers() {
                 reject.className =
                     "reject";
 
-                reject.onclick = () =>
-                    updateStatus(
+                reject.onclick =
+                    () => updateStatus(
                         item.id,
                         "rejected"
                     );
 
-                actions.appendChild(verify);
-                actions.appendChild(reject);
+                actions.appendChild(
+                    verify
+                );
+
+                actions.appendChild(
+                    reject
+                );
 
             } else {
 
@@ -306,27 +532,100 @@ async function loadVouchers() {
             row.appendChild(actions);
 
             list.appendChild(row);
-        });
-
-    } catch (error) {
-
-        console.error(
-            "โหลดรายการไม่สำเร็จ:",
-            error
-        );
-
-        list.innerHTML = `
-            <tr>
-                <td colspan="5" class="empty">
-                    โหลดข้อมูลไม่สำเร็จ:
-                    ${error.message}
-                </td>
-            </tr>
-        `;
-    }
+        }
+    );
 }
 
-async function updateStatus(id, status) {
+/* STATS */
+
+function updateStats(
+    vouchers
+) {
+
+    const pending =
+        vouchers.filter(
+            x =>
+                x.status ===
+                "pending"
+        ).length;
+
+    const verified =
+        vouchers.filter(
+            x =>
+                x.status ===
+                "verified"
+        ).length;
+
+    const rejected =
+        vouchers.filter(
+            x =>
+                x.status ===
+                "rejected"
+        ).length;
+
+    document.getElementById(
+        "pendingCount"
+    ).textContent =
+        pending;
+
+    document.getElementById(
+        "verifiedCount"
+    ).textContent =
+        verified;
+
+    document.getElementById(
+        "rejectedCount"
+    ).textContent =
+        rejected;
+}
+
+/* SEARCH */
+
+function filterVouchers() {
+
+    const keyword =
+        document.getElementById(
+            "search"
+        ).value
+        .toLowerCase();
+
+    const filtered =
+        allVouchers.filter(
+            item =>
+                String(
+                    item.id
+                )
+                .toLowerCase()
+                .includes(keyword)
+
+                ||
+
+                String(
+                    item.voucher
+                )
+                .toLowerCase()
+                .includes(keyword)
+
+                ||
+
+                String(
+                    item.status
+                )
+                .toLowerCase()
+                .includes(keyword)
+        );
+
+    renderVouchers(
+        filtered
+    );
+}
+
+/* UPDATE STATUS */
+
+async function updateStatus(
+    id,
+    status
+) {
 
     const text =
         status === "verified"
@@ -339,23 +638,31 @@ async function updateStatus(id, status) {
 
     try {
 
-        const response = await fetch(
-            `${API}/api/admin/vouchers/${id}`,
-            {
-                method: "PATCH",
+        const response =
+            await fetch(
+                `${API}/api/admin/vouchers/${id}`,
+                {
+                    method: "PATCH",
 
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-admin-token": token
-                },
+                    headers: {
+                        "Content-Type":
+                            "application/json",
 
-                body: JSON.stringify({
-                    status: status
-                })
-            }
-        );
+                        "x-admin-token":
+                            token
+                    },
 
-        if (response.status === 401) {
+                    body:
+                        JSON.stringify({
+                            status:
+                                status
+                        })
+                }
+            );
+
+        if (
+            response.status === 401
+        ) {
 
             localStorage.removeItem(
                 "adminToken"
@@ -370,7 +677,10 @@ async function updateStatus(id, status) {
         const data =
             await response.json();
 
-        if (!response.ok || !data.success) {
+        if (
+            !response.ok ||
+            !data.success
+        ) {
 
             throw new Error(
                 data.message ||
@@ -389,6 +699,8 @@ async function updateStatus(id, status) {
     }
 }
 
+/* LOGOUT */
+
 function logout() {
 
     localStorage.removeItem(
@@ -404,4 +716,5 @@ loadVouchers();
 </script>
 
 </body>
+
 </html>
