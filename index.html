@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>TrueMoney System</title>
 
     <style>
@@ -16,53 +17,120 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #0b0b0b;
+            background: #090909;
             color: white;
             font-family: Arial, sans-serif;
         }
 
-        .box {
-            width: 380px;
-            padding: 30px;
-            background: #151515;
-            border-radius: 20px;
+        .container {
+            width: 420px;
+            padding: 35px;
+            background: #141414;
+            border: 1px solid #292929;
+            border-radius: 22px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.45);
+        }
+
+        h1 {
+            margin: 0;
             text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #999;
+            margin-bottom: 28px;
         }
 
         input {
             width: 100%;
-            padding: 14px;
-            margin-top: 20px;
-            border: none;
-            border-radius: 10px;
+            padding: 15px;
+            background: #0d0d0d;
+            color: white;
+            border: 1px solid #333;
+            border-radius: 12px;
             outline: none;
+        }
+
+        input:focus {
+            border-color: #777;
         }
 
         button {
             width: 100%;
-            padding: 14px;
+            padding: 15px;
             margin-top: 12px;
             border: none;
-            border-radius: 10px;
-            cursor: pointer;
+            border-radius: 12px;
+            background: white;
+            color: black;
             font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: .85;
+        }
+
+        #status {
+            display: none;
+            margin-top: 18px;
+            padding: 12px;
+            border-radius: 10px;
+            background: #202020;
+            text-align: center;
+            color: #ddd;
         }
     </style>
 </head>
 
 <body>
 
-    <div class="box">
+    <div class="container">
+
         <h1>TrueMoney</h1>
-        <p>ระบบรับเงิน</p>
+
+        <div class="subtitle">
+            ระบบรับเงิน
+        </div>
 
         <input
+            id="voucher"
             type="text"
-            placeholder="ใส่ลิงก์ซอง TrueMoney"
+            placeholder="วางลิงก์ซอง TrueMoney"
         >
 
-        <button>รับซอง</button>
+        <button onclick="receiveVoucher()">
+            รับซอง
+        </button>
+
+        <div id="status"></div>
+
     </div>
+
+    <script>
+        function receiveVoucher() {
+
+            const input = document.getElementById("voucher");
+            const status = document.getElementById("status");
+
+            const voucher = input.value.trim();
+
+            status.style.display = "block";
+
+            if (!voucher) {
+                status.textContent = "กรุณาใส่ลิงก์ซองก่อน";
+                return;
+            }
+
+            if (!voucher.startsWith("http")) {
+                status.textContent = "กรุณาใส่ลิงก์ที่ถูกต้อง";
+                return;
+            }
+
+            status.textContent = "กำลังตรวจสอบซอง...";
+        }
+    </script>
 
 </body>
 </html>
