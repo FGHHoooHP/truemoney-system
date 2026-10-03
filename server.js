@@ -11,6 +11,13 @@ app.get("/", (req, res) => {
     });
 });
 
+app.get("/api/voucher", (req, res) => {
+    res.json({
+        success: true,
+        message: "Voucher API is online"
+    });
+});
+
 app.post("/api/voucher", (req, res) => {
 
     const { voucher } = req.body;
