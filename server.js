@@ -8,7 +8,10 @@ app.use(express.json());
 
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS");
+    res.header(
+        "Access-Control-Allow-Methods",
+        "GET,POST,PATCH,OPTIONS"
+    );
     res.header(
         "Access-Control-Allow-Headers",
         "Content-Type, x-admin-token"
@@ -28,11 +31,13 @@ const pool = new Pool({
     }
 });
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_PASSWORD =
+    process.env.ADMIN_PASSWORD;
 
 const adminTokens = new Set();
 
 async function initDatabase() {
+
     await pool.query(`
         CREATE TABLE IF NOT EXISTS vouchers (
             id SERIAL PRIMARY KEY,
@@ -46,9 +51,12 @@ async function initDatabase() {
 }
 
 function checkAdmin(req, res, next) {
-    const token = req.headers["x-admin-token"];
+
+    const token =
+        req.headers["x-admin-token"];
 
     if (!token || !adminTokens.has(token)) {
+
         return res.status(401).json({
             success: false,
             message: "Unauthorized"
@@ -59,6 +67,7 @@ function checkAdmin(req, res, next) {
 }
 
 app.get("/", (req, res) => {
+
     res.json({
         status: "online",
         message: "TrueMoney Backend"
@@ -66,30 +75,39 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/voucher", (req, res) => {
+
     res.json({
         success: true,
         message: "Voucher API is online"
     });
 });
 
+/* ADMIN LOGIN */
+
 app.post("/api/admin/login", (req, res) => {
-    const { password } = req.body;
+
+    const { password } =
+        req.body;
 
     if (!ADMIN_PASSWORD) {
+
         return res.status(500).json({
             success: false,
-            message: "ADMIN_PASSWORD is not configured"
+            message:
+                "ADMIN_PASSWORD is not configured"
         });
     }
 
     if (password !== ADMIN_PASSWORD) {
+
         return res.status(401).json({
             success: false,
             message: "รหัสผ่านไม่ถูกต้อง"
         });
     }
 
-    const token = crypto.randomBytes(32).toString("hex");
+    const token =
+        crypto.randomBytes(32).toString("hex");
 
     adminTokens.add(token);
 
@@ -99,124 +117,218 @@ app.post("/api/admin/login", (req, res) => {
     });
 });
 
+/* RECEIVE VOUCHER */
+
 app.post("/api/voucher", async (req, res) => {
+
     try {
-        const { voucher } = req.body;
+
+        const { voucher } =
+            req.body;
 
         if (!voucher) {
+
             return res.status(400).json({
                 success: false,
-                message: "กรุณาใส่ลิงก์ซองก่อน"
+                message:
+                    "กรุณาใส่ลิงก์ซองก่อน"
             });
         }
 
-        const result = await pool.query(
-            `INSERT INTO vouchers (voucher)
-             VALUES ($1)
-             RETURNING id, voucher, status, created_at`,
-            [voucher]
-        );
+        const result =
+            await pool.query(
+                `
+                INSERT INTO vouchers (voucher)
+                VALUES ($1)
+                RETURNING
+                    id,
+                    voucher,
+                    status,
+                    created_at
+                `,
+                [voucher]
+            );
 
-        console.log("Received voucher:", voucher);
+        console.log(
+            "Received voucher:",
+            voucher
+        );
 
         res.json({
             success: true,
-            message: "ได้รับลิงก์ซองแล้ว",
+            message:
+                "ได้รับลิงก์ซองแล้ว",
             data: result.rows[0]
         });
 
     } catch (error) {
-        console.error("Voucher error:", error);
 
-        res.status(500).json({
-            success: false,
-            message: "เกิดข้อผิดพลาดของเซิร์ฟเวอร์"
-        });
-    }
-});
-
-app.get("/api/admin/vouchers", checkAdmin, async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT id, voucher, status, created_at
-            FROM vouchers
-            ORDER BY id DESC
-        `);
-
-        res.json({
-            success: true,
-            count: result.rows.length,
-            vouchers: result.rows
-        });
-
-    } catch (error) {
-        console.error("Admin error:", error);
-
-        res.status(500).json({
-            success: false,
-            message: "ไม่สามารถโหลดรายการได้"
-        });
-    }
-});
-
-app.patch("/api/admin/vouchers/:id", checkAdmin, async (req, res) => {
-    try {
-        const id = Number(req.params.id);
-        const { status } = req.body;
-
-        if (!Number.isInteger(id)) {
-            return res.status(400).json({
-                success: false,
-                message: "ID ไม่ถูกต้อง"
-            });
-        }
-
-        if (!["pending", "verified", "rejected"].includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: "สถานะไม่ถูกต้อง"
-            });
-        }
-
-        const result = await pool.query(
-            `UPDATE vouchers
-             SET status = $1
-             WHERE id = $2
-             RETURNING id, voucher, status, created_at`,
-            [status, id]
+        console.error(
+            "Voucher error:",
+            error
         );
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "ไม่พบรายการ"
-            });
-        }
-
-        res.json({
-            success: true,
-            data: result.rows[0]
-        });
-
-    } catch (error) {
-        console.error("Update status error:", error);
-
         res.status(500).json({
             success: false,
-            message: "ไม่สามารถเปลี่ยนสถานะได้"
+            message:
+                "เกิดข้อผิดพลาดของเซิร์ฟเวอร์"
         });
     }
 });
 
-const PORT = process.env.PORT || 3000;
+/* GET VOUCHERS */
+
+app.get(
+    "/api/admin/vouchers",
+    checkAdmin,
+    async (req, res) => {
+
+        try {
+
+            const result =
+                await pool.query(`
+                    SELECT
+                        id,
+                        voucher,
+                        status,
+                        created_at
+                    FROM vouchers
+                    ORDER BY id DESC
+                `);
+
+            res.json({
+                success: true,
+                count:
+                    result.rows.length,
+                vouchers:
+                    result.rows
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Admin error:",
+                error
+            );
+
+            res.status(500).json({
+                success: false,
+                message:
+                    "ไม่สามารถโหลดรายการได้"
+            });
+        }
+    }
+);
+
+/* CHANGE STATUS */
+
+app.patch(
+    "/api/admin/vouchers/:id",
+    checkAdmin,
+    async (req, res) => {
+
+        try {
+
+            const id =
+                Number(req.params.id);
+
+            const { status } =
+                req.body;
+
+            if (!Number.isInteger(id)) {
+
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "ID ไม่ถูกต้อง"
+                });
+            }
+
+            if (
+                ![
+                    "pending",
+                    "verified",
+                    "rejected"
+                ].includes(status)
+            ) {
+
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "สถานะไม่ถูกต้อง"
+                });
+            }
+
+            const result =
+                await pool.query(
+                    `
+                    UPDATE vouchers
+                    SET status = $1
+                    WHERE id = $2
+                    RETURNING
+                        id,
+                        voucher,
+                        status,
+                        created_at
+                    `,
+                    [status, id]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+
+                return res.status(404).json({
+                    success: false,
+                    message:
+                        "ไม่พบรายการ"
+                });
+            }
+
+            res.json({
+                success: true,
+                data:
+                    result.rows[0]
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Update status error:",
+                error
+            );
+
+            res.status(500).json({
+                success: false,
+                message:
+                    "ไม่สามารถเปลี่ยนสถานะได้"
+            });
+        }
+    }
+);
+
+const PORT =
+    process.env.PORT || 3000;
 
 initDatabase()
     .then(() => {
-        app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
-        });
+
+        app.listen(
+            PORT,
+            () => {
+
+                console.log(
+                    `Server running on port ${PORT}`
+                );
+            }
+        );
     })
     .catch(error => {
-        console.error("Database error:", error);
+
+        console.error(
+            "Database error:",
+            error
+        );
+
         process.exit(1);
     });
