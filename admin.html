@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,37 +8,66 @@
 <title>Admin Panel</title>
 
 <style>
+
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
+    padding: 30px;
     background: #080808;
     color: white;
     font-family: Arial, sans-serif;
-    padding: 30px;
 }
 
-h1 {
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
 }
 
+h1 {
+    margin: 0;
+}
+
 button {
-    padding: 10px 16px;
     border: 0;
-    border-radius: 10px;
+    border-radius: 9px;
+    padding: 9px 14px;
     cursor: pointer;
-    background: #e53935;
     color: white;
+    font-weight: bold;
+}
+
+.logout {
+    background: #e53935;
+}
+
+.refresh {
+    background: #333;
+    margin-left: 8px;
+}
+
+.verify {
+    background: #00a854;
+}
+
+.reject {
+    background: #d32f2f;
 }
 
 table {
     width: 100%;
-    margin-top: 20px;
     border-collapse: collapse;
     background: #111;
-    border-radius: 12px;
+    border-radius: 14px;
     overflow: hidden;
 }
 
-th, td {
+th,
+td {
     padding: 14px;
     border-bottom: 1px solid #222;
     text-align: left;
@@ -48,31 +78,72 @@ th {
 }
 
 .status {
+    font-weight: bold;
+}
+
+.pending {
+    color: #ffc107;
+}
+
+.verified {
     color: #00e676;
 }
+
+.rejected {
+    color: #ff5252;
+}
+
+.actions {
+    display: flex;
+    gap: 7px;
+}
+
+.empty {
+    text-align: center;
+    padding: 25px;
+}
+
 </style>
 </head>
 
 <body>
 
-<h1>Admin Panel</h1>
+<div class="header">
 
-<button onclick="logout()">Logout</button>
+    <h1>Admin Panel</h1>
+
+    <div>
+        <button class="refresh" onclick="loadVouchers()">
+            Refresh
+        </button>
+
+        <button class="logout" onclick="logout()">
+            Logout
+        </button>
+    </div>
+
+</div>
 
 <table>
+
 <thead>
 <tr>
     <th>ID</th>
     <th>Voucher</th>
     <th>Status</th>
     <th>Date</th>
+    <th>Action</th>
 </tr>
 </thead>
 
 <tbody id="list">
+
 <tr>
-    <td colspan="4">กำลังโหลด...</td>
+    <td colspan="5" class="empty">
+        กำลังโหลด...
+    </td>
 </tr>
+
 </tbody>
 
 </table>
@@ -90,11 +161,12 @@ if (!token) {
 }
 
 async function loadVouchers() {
-    if (!token) return;
 
-    const list = document.getElementById("list");
+    const list =
+        document.getElementById("list");
 
     try {
+
         const response = await fetch(
             `${API}/api/admin/vouchers`,
             {
@@ -105,71 +177,223 @@ async function loadVouchers() {
         );
 
         if (response.status === 401) {
+
             localStorage.removeItem("adminToken");
-            window.location.href = "admin-login.html";
+
+            window.location.href =
+                "admin-login.html";
+
             return;
         }
 
         if (!response.ok) {
-            throw new Error(`Server ตอบกลับ HTTP ${response.status}`);
+            throw new Error(
+                `HTTP ${response.status}`
+            );
         }
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
-        if (!data.success || !Array.isArray(data.vouchers)) {
-            throw new Error(data.message || "รูปแบบข้อมูลไม่ถูกต้อง");
+        if (
+            !data.success ||
+            !Array.isArray(data.vouchers)
+        ) {
+            throw new Error(
+                data.message ||
+                "รูปแบบข้อมูลไม่ถูกต้อง"
+            );
         }
 
         list.replaceChildren();
 
         if (data.vouchers.length === 0) {
-            list.innerHTML =
-                '<tr><td colspan="4">ยังไม่มีรายการ</td></tr>';
+
+            list.innerHTML = `
+                <tr>
+                    <td colspan="5" class="empty">
+                        ยังไม่มีรายการ
+                    </td>
+                </tr>
+            `;
+
             return;
         }
 
         data.vouchers.forEach(item => {
-            const row = document.createElement("tr");
 
-            const values = [
-                item.id,
-                item.voucher,
-                item.status,
-                item.created_at
-            ];
+            const row =
+                document.createElement("tr");
 
-            values.forEach((value, index) => {
-                const cell = document.createElement("td");
-                cell.textContent = String(value ?? "");
+            const id =
+                document.createElement("td");
 
-                if (index === 2) {
-                    cell.className = "status";
-                }
+            id.textContent =
+                item.id;
 
-                row.appendChild(cell);
-            });
+            const voucher =
+                document.createElement("td");
+
+            voucher.textContent =
+                item.voucher;
+
+            const status =
+                document.createElement("td");
+
+            status.textContent =
+                item.status;
+
+            status.className =
+                `status ${item.status}`;
+
+            const date =
+                document.createElement("td");
+
+            date.textContent =
+                item.created_at;
+
+            const actions =
+                document.createElement("td");
+
+            actions.className =
+                "actions";
+
+            if (item.status === "pending") {
+
+                const verify =
+                    document.createElement("button");
+
+                verify.textContent =
+                    "Verify";
+
+                verify.className =
+                    "verify";
+
+                verify.onclick = () =>
+                    updateStatus(
+                        item.id,
+                        "verified"
+                    );
+
+                const reject =
+                    document.createElement("button");
+
+                reject.textContent =
+                    "Reject";
+
+                reject.className =
+                    "reject";
+
+                reject.onclick = () =>
+                    updateStatus(
+                        item.id,
+                        "rejected"
+                    );
+
+                actions.appendChild(verify);
+                actions.appendChild(reject);
+
+            } else {
+
+                actions.textContent =
+                    "ดำเนินการแล้ว";
+            }
+
+            row.appendChild(id);
+            row.appendChild(voucher);
+            row.appendChild(status);
+            row.appendChild(date);
+            row.appendChild(actions);
 
             list.appendChild(row);
         });
 
     } catch (error) {
-        console.error("โหลดรายการไม่สำเร็จ:", error);
 
-        const row = document.createElement("tr");
-        const cell = document.createElement("td");
+        console.error(
+            "โหลดรายการไม่สำเร็จ:",
+            error
+        );
 
-        cell.colSpan = 4;
-        cell.textContent =
-            `โหลดข้อมูลไม่สำเร็จ: ${error.message}`;
+        list.innerHTML = `
+            <tr>
+                <td colspan="5" class="empty">
+                    โหลดข้อมูลไม่สำเร็จ:
+                    ${error.message}
+                </td>
+            </tr>
+        `;
+    }
+}
 
-        row.appendChild(cell);
-        list.replaceChildren(row);
+async function updateStatus(id, status) {
+
+    const text =
+        status === "verified"
+            ? "ยืนยันรายการนี้?"
+            : "ปฏิเสธรายการนี้?";
+
+    if (!confirm(text)) {
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `${API}/api/admin/vouchers/${id}`,
+            {
+                method: "PATCH",
+
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-admin-token": token
+                },
+
+                body: JSON.stringify({
+                    status: status
+                })
+            }
+        );
+
+        if (response.status === 401) {
+
+            localStorage.removeItem(
+                "adminToken"
+            );
+
+            window.location.href =
+                "admin-login.html";
+
+            return;
+        }
+
+        const data =
+            await response.json();
+
+        if (!response.ok || !data.success) {
+
+            throw new Error(
+                data.message ||
+                `HTTP ${response.status}`
+            );
+        }
+
+        await loadVouchers();
+
+    } catch (error) {
+
+        alert(
+            "เปลี่ยนสถานะไม่สำเร็จ: " +
+            error.message
+        );
     }
 }
 
 function logout() {
 
-    localStorage.removeItem("adminToken");
+    localStorage.removeItem(
+        "adminToken"
+    );
 
     window.location.href =
         "admin-login.html";
