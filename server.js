@@ -1,5 +1,4 @@
 const express = require("express");
-const { Pool } = require("pg");
 
 const app = express();
 
@@ -17,27 +16,6 @@ app.use((req, res, next) => {
     next();
 });
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
-
-async function initDatabase() {
-
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS vouchers (
-            id SERIAL PRIMARY KEY,
-            voucher TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-
-    console.log("Database ready");
-}
-
 app.get("/", (req, res) => {
     res.json({
         status: "online",
@@ -52,58 +30,27 @@ app.get("/api/voucher", (req, res) => {
     });
 });
 
-app.post("/api/voucher", async (req, res) => {
+app.post("/api/voucher", (req, res) => {
+    const { voucher } = req.body;
 
-    try {
-
-        const { voucher } = req.body;
-
-        if (!voucher) {
-            return res.status(400).json({
-                success: false,
-                message: "กรุณาใส่ลิงก์ซองก่อน"
-            });
-        }
-
-        const result = await pool.query(
-            `
-            INSERT INTO vouchers (voucher)
-            VALUES ($1)
-            RETURNING id, status, created_at
-            `,
-            [voucher]
-        );
-
-        res.json({
-            success: true,
-            message: "รับข้อมูลเรียบร้อย",
-            transaction: result.rows[0]
-        });
-
-    } catch (error) {
-
-        console.error(error);
-
-        res.status(500).json({
+    if (!voucher) {
+        return res.status(400).json({
             success: false,
-            message: "เกิดข้อผิดพลาดของเซิร์ฟเวอร์"
+            message: "กรุณาใส่ลิงก์ซองก่อน"
         });
     }
+
+    console.log("Received voucher:", voucher);
+
+    res.json({
+        success: true,
+        message: "ได้รับลิงก์ซองแล้ว",
+        voucher: voucher
+    });
 });
 
 const PORT = process.env.PORT || 3000;
 
-initDatabase()
-    .then(() => {
-
-        app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
-        });
-
-    })
-    .catch(error => {
-
-        console.error("Database error:", error);
-        process.exit(1);
-
-    });
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
