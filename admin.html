@@ -90,74 +90,80 @@ if (!token) {
 }
 
 async function loadVouchers() {
+    if (!token) return;
+
+    const list = document.getElementById("list");
 
     try {
-
-        app.use((req, res, next) => {
-            res.header("Access-Control-Allow-Origin", "*");
-            res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-            res.header("Access-Control-Allow-Headers", "Content-Type, x-admin-token");
-        
-            if (req.method === "OPTIONS") {
-                return res.sendStatus(204);
+        const response = await fetch(
+            `${API}/api/admin/vouchers`,
+            {
+                headers: {
+                    "x-admin-token": token
+                }
             }
-        
-            next();
-        });
+        );
 
         if (response.status === 401) {
-
             localStorage.removeItem("adminToken");
-
-            window.location.href =
-                "admin-login.html";
-
+            window.location.href = "admin-login.html";
             return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Server ตอบกลับ HTTP ${response.status}`);
         }
 
         const data = await response.json();
 
-        const list =
-            document.getElementById("list");
+        if (!data.success || !Array.isArray(data.vouchers)) {
+            throw new Error(data.message || "รูปแบบข้อมูลไม่ถูกต้อง");
+        }
 
-        list.innerHTML = "";
+        list.replaceChildren();
 
-        if (!data.vouchers || data.vouchers.length === 0) {
-
-            list.innerHTML = `
-                <tr>
-                    <td colspan="4">
-                        ยังไม่มีรายการ
-                    </td>
-                </tr>
-            `;
-
+        if (data.vouchers.length === 0) {
+            list.innerHTML =
+                '<tr><td colspan="4">ยังไม่มีรายการ</td></tr>';
             return;
         }
 
         data.vouchers.forEach(item => {
-
             const row = document.createElement("tr");
 
-            row.innerHTML = `
-                <td>${item.id}</td>
-                <td>${item.voucher}</td>
-                <td class="status">${item.status}</td>
-                <td>${item.created_at}</td>
-            `;
+            const values = [
+                item.id,
+                item.voucher,
+                item.status,
+                item.created_at
+            ];
+
+            values.forEach((value, index) => {
+                const cell = document.createElement("td");
+                cell.textContent = String(value ?? "");
+
+                if (index === 2) {
+                    cell.className = "status";
+                }
+
+                row.appendChild(cell);
+            });
 
             list.appendChild(row);
         });
 
     } catch (error) {
+        console.error("โหลดรายการไม่สำเร็จ:", error);
 
-        document.getElementById("list").innerHTML = `
-            <tr>
-                <td colspan="4">
-                    โหลดข้อมูลไม่สำเร็จ
-                </td>
-            </tr>
-        `;
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+
+        cell.colSpan = 4;
+        cell.textContent =
+            `โหลดข้อมูลไม่สำเร็จ: ${error.message}`;
+
+        row.appendChild(cell);
+        list.replaceChildren(row);
     }
 }
 
