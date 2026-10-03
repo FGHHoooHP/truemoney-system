@@ -69,10 +69,23 @@
             color: white;
             font-weight: bold;
         }
+
+        .logout {
+            float: right;
+            background: #333;
+        }
+
+        .error {
+            color: #ff4444;
+        }
     </style>
 </head>
 
 <body>
+
+    <button class="logout" onclick="logout()">
+        Logout
+    </button>
 
     <h1>Admin Dashboard</h1>
 
@@ -107,18 +120,40 @@
 
 <script>
 
+const token = localStorage.getItem("adminToken");
+
+if (!token) {
+    window.location.href = "admin-login.html";
+}
+
 async function loadVouchers() {
 
     try {
 
         const response = await fetch(
-            "https://truemoney-system-production.up.railway.app/api/admin/vouchers"
+            "https://truemoney-system-production.up.railway.app/api/admin/vouchers",
+            {
+                method: "GET",
+
+                headers: {
+                    "x-admin-token": token
+                }
+            }
         );
+
+        if (response.status === 401) {
+
+            localStorage.removeItem("adminToken");
+
+            window.location.href = "admin-login.html";
+
+            return;
+        }
 
         const data = await response.json();
 
         if (!data.success) {
-            return;
+            throw new Error(data.message);
         }
 
         document.getElementById("count").textContent =
@@ -129,12 +164,25 @@ async function loadVouchers() {
 
         list.innerHTML = "";
 
+        if (data.vouchers.length === 0) {
+
+            list.innerHTML = `
+                <tr>
+                    <td colspan="4">
+                        ยังไม่มีรายการ
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
         data.vouchers.forEach(item => {
 
             const row = document.createElement("tr");
 
             row.innerHTML = `
-                <td>${item.id}</td>
+                <td>${escapeHtml(String(item.id))}</td>
 
                 <td class="voucher">
                     ${escapeHtml(item.voucher)}
@@ -159,8 +207,8 @@ async function loadVouchers() {
 
         document.getElementById("voucherList").innerHTML = `
             <tr>
-                <td colspan="4">
-                    Cannot connect to backend
+                <td colspan="4" class="error">
+                    ${escapeHtml(error.message || "Cannot connect to backend")}
                 </td>
             </tr>
         `;
@@ -175,6 +223,13 @@ function escapeHtml(text) {
     div.textContent = text;
 
     return div.innerHTML;
+}
+
+function logout() {
+
+    localStorage.removeItem("adminToken");
+
+    window.location.href = "admin-login.html";
 }
 
 loadVouchers();
